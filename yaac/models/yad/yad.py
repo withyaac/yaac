@@ -41,6 +41,8 @@ class YAD(torch.nn.Module):
         self._anchor_points = None
         self._feature_map_height = -1
         self._feature_map_width = -1
+        self._image_height = -1
+        self._image_width = -1
 
     def forward(
         self, img: torch.Tensor
@@ -63,6 +65,8 @@ class YAD(torch.nn.Module):
         # update anchors cache
         feature_map_height = backbone_features.shape[2]
         feature_map_width = backbone_features.shape[3]
+        self._image_height = img.shape[2]
+        self._image_width = img.shape[3]
         if self._anchor_points is None or feature_map_height != self._feature_map_height or feature_map_width != self._feature_map_width:
             self._feature_map_height = feature_map_height
             self._feature_map_width = feature_map_width
@@ -84,18 +88,22 @@ class YAD(torch.nn.Module):
         Args:
             outputs: Outputs from forward pass
             gt_bboxes: Ground truth bboxes. Length is the batch size. Each element 
-            is a tensor of shape (N, 5) where N is the number of bboxes. The 5
-            values are (min_row, min_col, max_row, max_col, class_id). The boox 
-            coordinates are normalized to [0,1], in the coordinate system of the
-            inputs to the forward method.
+                is a tensor of shape (N, 5) where N is the number of bboxes. The 5
+                values are (min_row, min_col, max_row, max_col, class_id). The boox 
+                coordinates are normalized to [0,1], in the coordinate system of the
+                inputs to the forward method.
         Returns:
             Keys are loss names, values are loss values (scalar tensors)
         """
         batch_size = len(gt_bboxes)
+        objectness_loss_per_sample = []
+        cls_loss_per_sample = []
+        bbox_loss_per_sample = []
+        breakpoint()
         for batch_idx in range(batch_size):
             anchor_distances = _get_pairwise_distance_points_bboxes(
                 anchor_points=self._anchor_points,
-                gt_bboxes=gt_bboxes 
+                gt_bboxes=gt_bboxes[batch_idx]
             )
             match_labels, match_idxs = _get_anchor_gt_matches(
                 anchor_distances,
@@ -104,19 +112,59 @@ class YAD(torch.nn.Module):
             # Objectness loss
             #   For each anchor, objectness is a binary classification equal to the 
             #   match label, from the logit output from the objectness head.
-
+            objectness_logits = outputs[2][batch_idx].reshape(-1)
+            objectness_loss = torch.nn.functional.binary_cross_entropy_with_logits(
+                objectness_logits,
+                match_labels.float(),
+            )
+            objectness_loss_per_sample.append(objectness_loss)
+            pos_mask = match_labels == 1
 
             # Classification Loss
             #   For each anchor that got a positive match label, the classification
             #     loss is cross entropy of the classiication logits
+            num_classes = outputs[1].shape[1]
+            cls_logits = outputs[1][batch_idx].reshape(num_classes,-1).permute(1,0)
+            pos_cls_logits = cls_logits[pos_mask]
+            pos_match_idxs = match_idxs[pos_mask]
+            gt_cls_ids = gt_bboxes[batch_idx][pos_match_idxs, 4]
+            cls_loss = torch.nn.functional.cross_entropy(
+                pos_cls_logits,
+                gt_cls_ids.long(),
+            )
+            cls_loss_per_sample.append(cls_loss)
+
 
             ## BBox loss
             #    For each anchor that got a positive match label, 
+            #     loss is smooth l1 loss of the bbox offsets
+            pos_anchor_points = self._anchor_points[pos_mask]
+            pos_gt_bboxes = gt_bboxes[batch_idx][pos_match_idxs, :4]
+            pos_bbox_offsets = _get_bbox_offsets(
+                anchor_points=pos_anchor_points,
+                gt_bboxes=pos_gt_bboxes,
+                image_height=self._image_height,
+                image_width=self._image_width,
+            )
+            # convert to image coordinates
+            pred_bbox_offsets = outputs[0][batch_idx]
+            pred_bbox_offsets = pred_bbox_offsets.reshape(4, -1).permute(1,0)
+            pos_pred_bbox_offsets = pred_bbox_offsets[pos_mask]
+            bbox_loss = torch.nn.functional.smooth_l1_loss(
+                pos_pred_bbox_offsets,
+                pos_bbox_offsets,
+            )
+            bbox_loss_per_sample.append(bbox_loss)
+
+
+        objectness_loss = torch.tensor(objectness_loss_per_sample).mean()
+        cls_loss = torch.tensor(cls_loss_per_sample).mean()
+        bbox_loss = torch.tensor(bbox_loss_per_sample).mean()
 
         return {
-            "bbox_loss": torch.tensor(0.0, device=bbox_out.device),
-            "cls_loss": torch.tensor(0.0, device=cls_out.device),
-            "objectness_loss": torch.tensor(0.0, device=objectness_out.device),
+            "bbox_loss": bbox_loss,
+            "cls_loss": cls_loss,
+            "objectness_loss": objectness_loss,
         }
 
     def postprocess(
@@ -274,6 +322,8 @@ def _get_anchor_gt_matches(
 def _get_bbox_offsets(
     anchor_points: torch.Tensor,
     gt_bboxes: torch.Tensor, 
+    image_height: int,
+    image_width: int,
 ) -> torch.Tensor:
     """Get the offsets from anchor points to ground truth bboxes.
     
@@ -288,9 +338,13 @@ def _get_bbox_offsets(
     Args:
         anchor_points: Anchor points. Shape (N, 2).
         gt_bboxes: Ground truth bboxes. Shape (N, 4).
+        image_height: Height of the image. To convert the offsets to absolute
+            coordinates.
+        image_width: Width of the image. To convert the offsets to absolute
+            coordinates.
         
     Returns:
-        Bbox offsets. Shape (N, 4). 
+        Bbox offsets, in abosulte image coordinates (pixels). Shape (N, 4). 
         The 4 values are:
             - offset of the min row of the bbox relative to the anchor point
             - offset of the min col of the bbox relative to the anchor point
@@ -316,6 +370,7 @@ def _get_bbox_offsets(
         gt_bboxes_max_rows - anchor_rows,
         gt_bboxes_max_cols - anchor_cols,
     ], dim=-1)
+    bbox_offsets = bbox_offsets * torch.tensor([image_height, image_width, image_height, image_width], device=bbox_offsets.device)
     return bbox_offsets
 
 def make_yad(num_classes: int = 80) -> YAD:

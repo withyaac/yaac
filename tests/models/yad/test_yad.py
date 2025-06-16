@@ -152,15 +152,15 @@ def test_get_bbox_offsets_values():
     Example:
         Anchor points and GT bboxes:
         - Anchor 1: [0.5, 0.5] with GT box [0.2, 0.3, 0.9, 0.6]
-          Expected offsets: [0.3, 0.2, 0.4, 0.1]
+          Expected offsets: [0.3, 0.2, 0.4, 0.1] * [image_height, image_width, image_height, image_width]
           (box extends different amounts in each direction)
         
         - Anchor 2: [0.2, 0.2] with GT box [0.1, 0.1, 0.3, 0.3]
-          Expected offsets: [0.1, 0.1, 0.1, 0.1]
+          Expected offsets: [0.1, 0.1, 0.1, 0.1] * [image_height, image_width, image_height, image_width]
           (anchor is at center, box extends 0.1 in each direction)
         
         - Anchor 3: [0.8, 0.8] with GT box [0.7, 0.7, 0.9, 0.9]
-          Expected offsets: [0.1, 0.1, 0.1, 0.1]
+          Expected offsets: [0.1, 0.1, 0.1, 0.1] * [image_height, image_width, image_height, image_width]
           (anchor is at center, box extends 0.1 in each direction)
     """
     # Input anchor points and GT bboxes
@@ -176,15 +176,24 @@ def test_get_bbox_offsets_values():
         [0.7, 0.7, 0.9, 0.9],  # Box centered at (0.8, 0.8)
     ])
 
-    # Call function under test
-    offsets = _get_bbox_offsets(anchor_points, gt_bboxes)
+    # Image dimensions
+    image_height = 224
+    image_width = 224
 
-    # Expected offsets
+    # Call function under test
+    offsets = _get_bbox_offsets(
+        anchor_points=anchor_points,
+        gt_bboxes=gt_bboxes,
+        image_height=image_height,
+        image_width=image_width,
+    )
+
+    # Expected offsets (normalized values * image dimensions)
     expected_offsets = torch.tensor([
         [0.3, 0.2, 0.4, 0.1],  # Anchor 1: Box extends different amounts in each direction
         [0.1, 0.1, 0.1, 0.1],  # Anchor 2: Box extends 0.1 in each direction
         [0.1, 0.1, 0.1, 0.1],  # Anchor 3: Box extends 0.1 in each direction
-    ])
+    ]) * torch.tensor([image_height, image_width, image_height, image_width])
 
     # Verify outputs
     assert offsets.shape == (3, 4)
@@ -192,10 +201,50 @@ def test_get_bbox_offsets_values():
 
     # Verify that we can reconstruct the original boxes using the offsets
     reconstructed_boxes = torch.stack([
-        anchor_points[..., 0] - offsets[..., 0],  # min_row
-        anchor_points[..., 1] - offsets[..., 1],  # min_col
-        anchor_points[..., 0] + offsets[..., 2],  # max_row
-        anchor_points[..., 1] + offsets[..., 3],  # max_col
+        anchor_points[..., 0] - offsets[..., 0] / image_height,  # min_row
+        anchor_points[..., 1] - offsets[..., 1] / image_width,   # min_col
+        anchor_points[..., 0] + offsets[..., 2] / image_height,  # max_row
+        anchor_points[..., 1] + offsets[..., 3] / image_width,   # max_col
     ], dim=-1)
     
-    assert torch.allclose(reconstructed_boxes, gt_bboxes, atol=1e-6) 
+    assert torch.allclose(reconstructed_boxes, gt_bboxes, atol=1e-6)
+
+
+def test_yad_loss_shapetype():
+    """Test that the loss function outputs have correct shapes and types."""
+    # Create model and test inputs
+    num_classes = 80
+    model = make_yad(num_classes=num_classes)
+    batch_size = 2
+    image = torch.randn(batch_size, 3, 224, 224)
+    
+    # Get model outputs
+    bbox_out, cls_out, objectness_out = model(image)
+    
+    # Create ground truth bboxes
+    gt_bboxes = [
+        torch.tensor([
+            [0.2, 0.3, 0.9, 0.6, 5],  # One box with class_id 5
+            [0.1, 0.1, 0.3, 0.3, 10],  # Another box with class_id 10
+        ]),
+        torch.tensor([
+            [0.4, 0.4, 0.6, 0.6, 15],  # One box with class_id 15
+        ]),
+    ]
+
+    # Call loss function
+    losses = model.loss((bbox_out, cls_out, objectness_out), gt_bboxes)
+
+    # Check types
+    assert isinstance(losses, dict)
+    assert all(isinstance(v, torch.Tensor) for v in losses.values())
+    assert all(v.dtype == torch.float32 for v in losses.values())
+
+    # Check keys
+    assert set(losses.keys()) == {"bbox_loss", "cls_loss", "objectness_loss"}
+
+    # Check shapes - all losses should be scalar tensors
+    assert all(v.ndim == 0 for v in losses.values())
+
+    # Check values are non-negative
+    assert all(v.item() >= 0 for v in losses.values()) 

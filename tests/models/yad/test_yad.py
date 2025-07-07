@@ -247,4 +247,50 @@ def test_yad_loss_shapetype():
     assert all(v.ndim == 0 for v in losses.values())
 
     # Check values are non-negative
-    assert all(v.item() >= 0 for v in losses.values()) 
+    assert all(v.item() >= 0 for v in losses.values())
+
+
+def test_yad_postprocess_shapetype():
+    """Test that the postprocess method outputs have correct shapes and types."""
+    # Create model and test inputs
+    num_classes = 80
+    model = make_yad(num_classes=num_classes)
+    batch_size = 2
+    image = torch.randn(batch_size, 3, 224, 224)
+    
+    # Get model outputs
+    bbox_out, cls_out, objectness_out = model(image)
+    
+    # Call postprocess function
+    detected_bboxes_list = model.postprocess((bbox_out, cls_out, objectness_out))
+
+    # Check types
+    assert isinstance(detected_bboxes_list, list)
+    assert len(detected_bboxes_list) == batch_size
+    assert all(isinstance(bboxes, torch.Tensor) for bboxes in detected_bboxes_list)
+
+    # Check each batch's output
+    for batch_idx, bboxes in enumerate(detected_bboxes_list):
+        # Check type
+        assert bboxes.dtype == torch.float32
+
+        # Check shape - should be (N, 6) where:
+        # N = number of detected bboxes, 6 = (min_row, min_col, max_row, max_col, score, class_id)
+        assert bboxes.ndim == 2
+        if bboxes.shape[0] > 0:  # If there are detections
+            assert bboxes.shape[1] == 6
+
+            # Check that scores are in [0,1] range (after sigmoid and softmax)
+            scores = bboxes[..., 4]
+            assert torch.all(scores >= 0.0)
+            assert torch.all(scores <= 1.0)
+
+            # Check that bbox coordinates are in [0,1] range (normalized)
+            bbox_coords = bboxes[..., :4]
+            assert torch.all(bbox_coords >= 0.0)
+            assert torch.all(bbox_coords <= 1.0)
+
+            # Check that class IDs are valid indices
+            class_ids = bboxes[..., 5]
+            assert torch.all(class_ids >= 0)
+            assert torch.all(class_ids < num_classes) 

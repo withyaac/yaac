@@ -3,28 +3,28 @@
 import pytest
 import torch
 
-from yaac.models.sic.sic import SIC, create_sic_model
+from yaac.models.sic.sic import SIC, make_model
 
 
-def test_create_sic_model_shapetype():
-    """Test that create_sic_model creates a model with correct type and structure."""
-    model = create_sic_model(num_classes=10, pretrained=False)
+def test_make_model_shapetype():
+    """Test that make_model creates a model with correct type and structure."""
+    model = make_model(num_classes=10, pretrained=False)
     assert isinstance(model, SIC)
     assert isinstance(model, torch.nn.Module)
 
 
-def test_create_sic_model_binary_classification():
-    """Test that create_sic_model configures binary classification correctly."""
-    model = create_sic_model(num_classes=2, pretrained=False)
+def test_make_model_binary_classification():
+    """Test that make_model configures binary classification correctly."""
+    model = make_model(num_classes=2, pretrained=False)
     
     # Check that it uses BCEWithLogitsLoss for binary classification
     assert isinstance(model._loss_function, torch.nn.BCEWithLogitsLoss)
     assert model._postprocess_function == torch.sigmoid
 
 
-def test_create_sic_model_multi_classification():
-    """Test that create_sic_model configures multi-class classification correctly."""
-    model = create_sic_model(num_classes=5, pretrained=False)
+def test_make_model_multi_classification():
+    """Test that make_model configures multi-class classification correctly."""
+    model = make_model(num_classes=5, pretrained=False)
     
     # Check that it uses CrossEntropyLoss for multi-class classification
     assert isinstance(model._loss_function, torch.nn.CrossEntropyLoss)
@@ -33,7 +33,7 @@ def test_create_sic_model_multi_classification():
 
 def test_sic_forward_shapetype_binary():
     """Test that the forward pass outputs have correct shapes and types for binary classification."""
-    model = create_sic_model(num_classes=2, pretrained=False)
+    model = make_model(num_classes=2, pretrained=False)
     batch_size = 3
     image = torch.randn(batch_size, 3, 224, 224)
     outputs = model(image)
@@ -48,7 +48,7 @@ def test_sic_forward_shapetype_binary():
 
 def test_sic_forward_shapetype_multi():
     """Test that the forward pass outputs have correct shapes and types for multi-class classification."""
-    model = create_sic_model(num_classes=5, pretrained=False)
+    model = make_model(num_classes=5, pretrained=False)
     batch_size = 4
     image = torch.randn(batch_size, 3, 224, 224)
     outputs = model(image)
@@ -63,7 +63,7 @@ def test_sic_forward_shapetype_multi():
 
 def test_sic_loss_shapetype_binary():
     """Test that the loss function outputs have correct shapes and types for binary classification."""
-    model = create_sic_model(num_classes=2, pretrained=False)
+    model = make_model(num_classes=2, pretrained=False)
     batch_size = 3
     image = torch.randn(batch_size, 3, 224, 224)
     outputs = model(image)
@@ -91,7 +91,7 @@ def test_sic_loss_shapetype_binary():
 
 def test_sic_loss_shapetype_multi():
     """Test that the loss function outputs have correct shapes and types for multi-class classification."""
-    model = create_sic_model(num_classes=5, pretrained=False)
+    model = make_model(num_classes=5, pretrained=False)
     batch_size = 4
     image = torch.randn(batch_size, 3, 224, 224)
     outputs = model(image)
@@ -119,7 +119,7 @@ def test_sic_loss_shapetype_multi():
 
 def test_sic_postprocess_shapetype_binary():
     """Test that the postprocess method outputs have correct shapes and types for binary classification."""
-    model = create_sic_model(num_classes=2, pretrained=False)
+    model = make_model(num_classes=2, pretrained=False)
     batch_size = 3
     image = torch.randn(batch_size, 3, 224, 224)
     outputs = model(image)
@@ -142,7 +142,7 @@ def test_sic_postprocess_shapetype_binary():
 
 def test_sic_postprocess_shapetype_multi():
     """Test that the postprocess method outputs have correct shapes and types for multi-class classification."""
-    model = create_sic_model(num_classes=5, pretrained=False)
+    model = make_model(num_classes=5, pretrained=False)
     batch_size = 4
     image = torch.randn(batch_size, 3, 224, 224)
     outputs = model(image)
@@ -165,6 +165,44 @@ def test_sic_postprocess_shapetype_multi():
     # Check that probabilities sum to 1 for each sample (softmax property)
     prob_sums = torch.sum(confidences, dim=1)
     assert torch.allclose(prob_sums, torch.ones(batch_size), atol=1e-6)
+
+
+def test_make_model_custom_configurations():
+    """Test that make_model works with custom configurations."""
+    # Test explicit BCE loss
+    model = make_model(num_classes=2, loss_type="bce", pretrained=False)
+    assert isinstance(model._loss_function, torch.nn.BCEWithLogitsLoss)
+    
+    # Test explicit CrossEntropy loss
+    model = make_model(num_classes=5, loss_type="ce", pretrained=False)
+    assert isinstance(model._loss_function, torch.nn.CrossEntropyLoss)
+    
+    # Test explicit sigmoid postprocess
+    model = make_model(num_classes=2, postprocess_type="sigmoid", pretrained=False)
+    assert model._postprocess_function == torch.sigmoid
+    
+    # Test explicit softmax postprocess
+    model = make_model(num_classes=5, postprocess_type="softmax", pretrained=False)
+    assert model._postprocess_function.func == torch.nn.functional.softmax
+
+
+def test_make_model_invalid_configurations():
+    """Test that make_model raises errors for invalid configurations."""
+    # Test invalid backbone type
+    with pytest.raises(ValueError, match="Unknown backbone type"):
+        make_model(num_classes=2, backbone_type="invalid", pretrained=False)
+    
+    # Test invalid head type
+    with pytest.raises(ValueError, match="Unknown head type"):
+        make_model(num_classes=2, head_type="invalid", pretrained=False)
+    
+    # Test invalid loss type
+    with pytest.raises(ValueError, match="Unknown loss type"):
+        make_model(num_classes=2, loss_type="invalid", pretrained=False)
+    
+    # Test invalid postprocess type
+    with pytest.raises(ValueError, match="Unknown postprocess type"):
+        make_model(num_classes=2, postprocess_type="invalid", pretrained=False)
 
 
 def test_sic_composition_components():

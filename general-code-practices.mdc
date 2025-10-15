@@ -11,3 +11,4 @@
 - Use [build_env.sh](mdc:setup/build_env.sh) to setup a venv with the project installed, if you need to run something
 - See [README.md](mdc:README.md) for instructions
 - **Import Rule**: Always import the top-level module (e.g., `import torch`) rather than submodules (e.g., `import torch.nn`). Use the full path in code (e.g., `torch.nn.Linear` instead of `nn.Linear`). This makes dependencies clearer and avoids namespace pollution.
+- **Code Ordering**: Order code from highest level (most likely to be used/read) at the top to lowest level (internal functions) at the bottom. Put public API functions first, then classes, then private helper functions. This makes files easier to scan and understand. If there are forward reference issues, put the referenced class/function above the referencing one rather than using string annotations.

@@ -1,0 +1,7 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+- Use [build_env.sh](mdc:setup/build_env.sh) to setup a venv with the project installed, if you need to run something
+- See [README.md](mdc:README.md) for instructions

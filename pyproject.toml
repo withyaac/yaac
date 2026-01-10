@@ -1,0 +1,44 @@
+[project]
+name = "yaac"
+version = "0.1.0"
+description = "Yet Another AI Company"
+authors = [{name = "Phil Ammirato", email = "phil.ammirato.yaac@gmail.com"}]
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.12"
+dependencies = [
+    "numpy==2.3.3",
+    "timm==1.0.20",
+    "torch==2.8.0",
+    "torchvision==0.23.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.8.0",
+    "ruff>=0.3.0",
+    "pytest>=8.0.0",
+]
+
+[tool.setuptools]
+packages = ["yaac"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+select = ["E", "F", "I", "N", "W", "B", "C4", "UP"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+docstring-code-format = true
+docstring-code-line-length = 88

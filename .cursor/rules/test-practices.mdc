@@ -1,0 +1,86 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Test Practices
+
+## Test Organization
+
+- Keep tests simple and self-contained when possible
+- Mirror the source code structure in the tests directory
+- Name test files `test_*.py`
+- Name test functions `test_*`
+- Group related tests in classes when they share setup/teardown
+
+## Test Types
+
+Choose ONE of these test types for each function/method, in order of preference:
+
+1. `*_values`: Checks output values match expectations (preferred)
+   - Use when you can verify the actual output values
+   - Example: Computing a loss and verifying the result
+   - Example: Testing a specific algorithm's output
+   - Example: Verifying anchor point positions in a grid
+   - When making a _values test, setup the input and expect output at the start
+        of the test function, with comments to explain. Then call the function
+        we are testing, and compare to the expected outputs. 
+    - When creating expected output values, don't re-implement the function. 
+       It's better to make smaller examples, and type out / hard code the expected outputs.
+
+2. `*_shapetype`: Tests the shape and/or type of outputs
+   - Use when exact values can't be verified but structure can be
+   - Example: Checking model output shapes and types
+   - Example: Verifying tensor dimensions
+   - Example: Testing interface contracts
+
+3. `*_runs`: Checks something runs without error (use sparingly)
+   - Use only when neither values nor shapes can be verified
+   - Example: Testing a complex initialization that can't be easily verified
+   - Example: Testing integration points where output verification is impractical
+
+## Test Best Practices
+
+- Use descriptive test names that explain what is being tested
+- One assertion per test when possible
+- Use pytest fixtures for shared setup
+- Use parametrize for testing multiple inputs
+- Mock external dependencies
+- Keep tests fast and independent
+- Use appropriate pytest markers (e.g., @pytest.mark.slow)
+- Test edge cases and error conditions
+- Use meaningful test data
+- Avoid testing implementation details
+- Test public interfaces, not private methods
+
+## Example Test Structure
+
+```python
+# Preferred: values test when possible
+def test_anchor_points_values():
+    """Test that anchor points are placed correctly in the grid."""
+    points = make_anchor_points(height=224, width=224, stride=16)
+    assert torch.allclose(points[0], torch.tensor([0.0, 0.0]))
+    assert torch.allclose(points[1], torch.tensor([16.0, 0.0]))
+
+# Fallback: shapetype when values can't be verified
+def test_model_output_shapetype():
+    """Test that model outputs have correct shapes and types."""
+    outputs = model(inputs)
+    assert isinstance(outputs, torch.Tensor)
+    assert outputs.shape == (batch_size, num_classes)
+
+# Last resort: runs test when neither values nor shapes can be verified
+def test_complex_initialization_runs():
+    """Test that complex initialization completes without error."""
+    model = make_complex_model()  # Can't easily verify internal state
+```
+
+## Common Test Patterns
+
+- Use `pytest.fixture` for setup/teardown
+- Use `pytest.mark.parametrize` for multiple test cases
+- Use `pytest.raises` for testing exceptions
+- Use `torch.testing.assert_close` for tensor comparisons
+- Use `numpy.testing.assert_allclose` for numpy arrays
+- Use `unittest.mock` for mocking

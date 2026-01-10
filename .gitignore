@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdm.toml
+*.pdm.lock
+*egg-info*
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PyInstaller
+build/
+dist/
+
+# Pytest
+htmlcov/
+.tox/
+.nox/
+.coverage
+.pytest_cache/
+
+# VS Code
+.vscode/
+

@@ -1,0 +1,15 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# General Code Practices
+
+- Use google style python doc strings, and google python style. See [trainable_model.py](mdc:yaac/common/trainable_model.py) for examples.
+- Keep doc string concise. 
+- Keep line length to 88
+- When making edits, keep changes targeted to the current task. Do not go off-script and change things unrelated to the ask. For example, do not remove breakpoints, comments, or commented code unless asked to. 
+- Use the interface [trainable_model.py](mdc:yaac/common/trainable_model.py) when creating a new model
+- Keep in mind other humans and AI agents will be reading your code later (and you will be too).
+- When making classes, make attributes "private", meaning names start with a "_", and make getters for the public version.
+- NEVER remove debugging code (breakpoint(), print(), etc.) without explicit permission. These are often left intentionally for debugging purposes. 

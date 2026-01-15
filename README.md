@@ -4,7 +4,7 @@
 [![Python 3.10+](https://img.shields.io/pypi/pyversions/yaac.svg)](https://pypi.org/project/yaac/)
 [![License](https://img.shields.io/pypi/l/yaac.svg)](https://pypi.org/project/yaac/)
 
-Yet Another AI Company - Python package for loading and using trained image classification models.
+YAAC - Python package for loading and train AI models.
 
 ## Installation
 

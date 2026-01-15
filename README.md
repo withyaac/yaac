@@ -1,101 +1,54 @@
 # yaac
 
+[![PyPI version](https://img.shields.io/pypi/v/yaac.svg)](https://pypi.org/project/yaac/)
+[![Python 3.10+](https://img.shields.io/pypi/pyversions/yaac.svg)](https://pypi.org/project/yaac/)
+[![License](https://img.shields.io/pypi/l/yaac.svg)](https://pypi.org/project/yaac/)
+
+Yet Another AI Company - Python package for loading and using trained image classification models.
+
+## Installation
+
+Install from PyPI:
+
+```bash
+pip install yaac
+```
+
 ## Quick Start
 
-1. Clone this repository:
-```bash
-git clone https://github.com/phil-yaac/yaac.git
-cd yaac
+Load a trained model and run inference:
+
+```python
+from yaac.common.model_loader import load_model_from_checkpoint
+import torch
+
+# Load your trained model
+model, config = load_model_from_checkpoint("path/to/checkpoint", device="cuda")
+
+# Run inference
+image = torch.randn(1, 3, 224, 224)  # Your image tensor
+with torch.no_grad():
+    predictions = model(image)
+    processed = model.postprocess(predictions)
+
+print(f"Predictions: {processed}")
 ```
 
-2. Run the setup script:
-```bash
-./setup/build_env.sh
-```
+## What is yaac?
 
-This will:
-- Install uv if not present
-- Create a virtual environment
-- Install all dependencies
-- Set up convenient aliases (`ycd` and `yactivate`)
+`yaac` is a Python package that provides:
 
-## Development
+- **Model Loading**: Load trained image classification models from exported checkpoints (safetensors + config.json)
+- **Model Interface**: Standardized `TrainableModel` interface for consistent model usage
+- **SIC Models**: Support for Simple Image Classifier (SIC) models with configurable backbones and heads
 
-The project uses mypy for type checking, ruff for linting, and ruff format for code formatting. Here's how to use these tools:
+Models are trained using YAAC's infrastructure and exported in a format compatible with this package.
 
-### Type Checking with mypy
+## Documentation
 
-```bash
-# Check all Python files in the project
-mypy yaac/
+- [Contributing Guide](CONTRIBUTING.md) - For developers who want to contribute
+- [Publishing Guide](publish/PUBLISHING.md) - For maintainers publishing new versions
 
-# Check a specific file
-mypy yaac/specific_file.py
+## License
 
-# Run with verbose output
-mypy -v yaac/
-
-# Faster options:
-# Use incremental mode (caches results)
-mypy --incremental yaac/
-
-# Use mypy daemon for even faster checks
-dmypy start
-dmypy run -- yaac/
-dmypy stop
-```
-
-### Linting with ruff
-
-```bash
-# Check all Python files in the project
-ruff check yaac/
-
-# Check a specific file
-ruff check yaac/specific_file.py
-
-# Auto-fix issues where possible
-ruff check --fix yaac/
-
-# Show all available rules
-ruff rule list
-
-# Run with verbose output
-ruff check -v yaac/
-```
-
-### Code Formatting with ruff format
-
-```bash
-# Format all Python files in the project
-ruff format yaac/
-
-# Format a specific file
-ruff format yaac/specific_file.py
-
-# Check formatting without making changes
-ruff format --check yaac/
-
-# Show what would be changed without making changes
-ruff format --diff yaac/
-```
-
-### Running Tests
-
-```bash
-# Run all tests
-pytest
-
-# Run tests with verbose output
-pytest -v
-
-# Run tests for a specific module
-pytest tests/models/sic/
-
-# Run a specific test
-pytest tests/models/sic/test_sic.py::test_make_model_shapetype
-```
-
-You can also integrate these tools with your editor:
-- For VS Code: Install the "Python" and "Ruff" extensions
-- For PyCharm: Install the "Mypy" and "Ruff" plugins
+Apache 2.0 - See [LICENSE](LICENSE) for details.

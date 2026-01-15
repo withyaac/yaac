@@ -79,16 +79,14 @@ def make_model(
     head_type: str = "basic_001",
     loss_type: str = "auto",
     postprocess_type: str = "auto",
-    pretrained: bool = False,
 ) -> SIC:
     """Factory function to create a SIC model with configurable components.
     
     This function creates a SIC model using configurable backbone, head,
     loss function, and postprocessing components.
     
-    Note: pretrained is set to False by default since customers will load
-    their own weights. Set to True only if you want to use pretrained weights
-    for testing/development.
+    Note: Models are created with random weights. Customers will load their
+    own trained weights using load_model_from_checkpoint().
     
     Args:
         num_classes: Number of output classes
@@ -96,12 +94,11 @@ def make_model(
         head_type: Type of predictions head to use ("basic_001" or "basic_convnext_tiny")
         loss_type: Type of loss function to use ("auto", "bce", "ce")
         postprocess_type: Type of postprocess function to use ("auto", "sigmoid", "softmax")
-        pretrained: Whether to use pretrained weights for the backbone (default: False)
         
     Returns:
         Configured SIC model instance
     """
-    backbone = _build_backbone(backbone_type, pretrained)
+    backbone = _build_backbone(backbone_type)
     predictions_head = _build_head(head_type, num_classes)
     loss_function = _build_loss_function(loss_type, num_classes)
     postprocess_function = _build_postprocess_function(postprocess_type, num_classes)
@@ -114,21 +111,18 @@ def make_model(
     )
 
 
-def _build_backbone(backbone_type: str, pretrained: bool) -> torch.nn.Module:
+def _build_backbone(backbone_type: str) -> torch.nn.Module:
     """Build backbone network based on type.
     
     Args:
         backbone_type: Type of backbone to build ("resnet18" or "convnext_tiny_dinov3")
-        pretrained: Whether to use pretrained weights (ignored for convnext_tiny_dinov3)
         
     Returns:
         Backbone network module that outputs (batch, features, H, W) or (batch, features, 1, 1)
     """
     if backbone_type == "resnet18":
-        if pretrained:
-            backbone = torchvision.models.resnet18(weights=torchvision.models.ResNet18_Weights.IMAGENET1K_V1)
-        else:
-            backbone = torchvision.models.resnet18(weights=None)
+        # Create ResNet18 without pretrained weights (customers load their own)
+        backbone = torchvision.models.resnet18(weights=None)
         # Remove avgpool and fc layers, keep only the feature extraction part
         backbone = torch.nn.Sequential(*list(backbone.children())[:-2])
         return backbone

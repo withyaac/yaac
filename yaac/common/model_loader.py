@@ -105,13 +105,11 @@ def _load_sic_model(config: dict[str, Any], device: str) -> SIC:
     if "head_type" in config:
         head_type = config["head_type"]
     
-    # Create model with random weights (pretrained=False)
-    # Customer weights will be loaded after
+    # Create model with random weights (customers load their own trained weights)
     model = make_model(
         num_classes=num_classes,
         backbone_type=backbone_type,
         head_type=head_type,
-        pretrained=False,  # No pretrained weights - load customer weights
     )
     
     return model

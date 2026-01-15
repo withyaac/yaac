@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "yaac"
 version = "0.1.1"
-description = "Yet Another AI Company - Python package for loading and using trained image classification models"
+description = "YAAC - Python package for loading and using trained AI models"
 authors = [{name = "Phil Ammirato", email = "phil.ammirato.yaac@gmail.com"}]
 readme = "README.md"
 license = "Apache-2.0"
@@ -24,10 +24,10 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "numpy==2.3.3",
+    "numpy>=2.0.0,<3.0.0",
     "safetensors>=0.5.0",
-    "torch==2.8.0",
-    "torchvision==0.23.0",
+    "torch>=2.0.0,<3.0.0",
+    "torchvision>=0.15.0,<0.24.0",
     "transformers>=4.40.0",
 ]
 

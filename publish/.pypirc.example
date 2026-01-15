@@ -1,0 +1,18 @@
+# Example .pypirc file
+# Copy this to ~/.pypirc and fill in your tokens
+# DO NOT commit ~/.pypirc to git (it contains secrets)
+
+[distutils]
+index-servers =
+    testpypi
+    pypi
+
+[testpypi]
+repository = https://test.pypi.org/legacy/
+username = __token__
+password = pypi-YourTestPyPITokenHere
+
+[pypi]
+repository = https://upload.pypi.org/legacy/
+username = __token__
+password = pypi-YourPyPITokenHere

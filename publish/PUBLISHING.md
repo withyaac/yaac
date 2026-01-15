@@ -53,6 +53,10 @@ Before publishing to production PyPI, test on TestPyPI:
 
 1. **Upload to TestPyPI**:
    ```bash
+   # Option 1: Use the helper script (recommended)
+   ./publish/upload_to_testpypi.sh
+   
+   # Option 2: Manual upload
    python -m twine upload --repository testpypi dist/*
    ```
 
@@ -79,6 +83,10 @@ Once you've tested on TestPyPI:
 
 1. **Upload to PyPI**:
    ```bash
+   # Option 1: Use the helper script (recommended)
+   ./publish/upload_to_pypi.sh
+   
+   # Option 2: Manual upload
    python -m twine upload dist/*
    ```
 
@@ -113,7 +121,32 @@ For security, use API tokens instead of passwords:
 1. Go to https://pypi.org/manage/account/token/ (or TestPyPI equivalent)
 2. Create a new API token with scope "Entire account" or "Project: yaac"
 3. Copy the token (starts with `pypi-`)
-4. Use `__token__` as username and the token as password when uploading
+
+### Using Helper Scripts (Recommended)
+
+The easiest way to upload is using the helper scripts in `publish/`:
+
+1. **Create `.env` file** in the project root:
+   ```bash
+   # Copy from .env.example if it exists, or create:
+   TESTPYPI_TOKEN=pypi-your-testpypi-token-here
+   PYPI_TOKEN=pypi-your-pypi-token-here
+   ```
+
+2. **Upload using scripts**:
+   ```bash
+   # Test on TestPyPI
+   ./publish/upload_to_testpypi.sh
+   
+   # Upload to production
+   ./publish/upload_to_pypi.sh
+   ```
+
+The scripts automatically load tokens from `.env` and use `__token__` as the username.
+
+### Manual Upload
+
+If you prefer manual upload, use `__token__` as username and the token as password when prompted.
 
 ## Troubleshooting
 

@@ -1,16 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "yaac"
 version = "0.1.0"
-description = "Yet Another AI Company"
+description = "Yet Another AI Company - Python package for loading and using trained image classification models"
 authors = [{name = "Phil Ammirato", email = "phil.ammirato.yaac@gmail.com"}]
 readme = "README.md"
-license = {file = "LICENSE"}
+license = "Apache-2.0"
 requires-python = ">=3.12"
+keywords = ["machine-learning", "deep-learning", "pytorch", "image-classification", "computer-vision"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 dependencies = [
     "numpy==2.3.3",
-    "timm==1.0.20",
+    "safetensors>=0.5.0",
     "torch==2.8.0",
     "torchvision==0.23.0",
+    "transformers>=4.40.0",
 ]
 
 [project.optional-dependencies]
@@ -21,7 +37,7 @@ dev = [
 ]
 
 [tool.setuptools]
-packages = ["yaac"]
+packages = {find = {}}
 
 [tool.mypy]
 python_version = "3.12"

@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "yaac"
-version = "0.1.0"
+version = "0.1.1"
 description = "Yet Another AI Company - Python package for loading and using trained image classification models"
 authors = [{name = "Phil Ammirato", email = "phil.ammirato.yaac@gmail.com"}]
 readme = "README.md"
 license = "Apache-2.0"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 keywords = ["machine-learning", "deep-learning", "pytorch", "image-classification", "computer-vision"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -17,6 +17,8 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -29,6 +31,12 @@ dependencies = [
     "transformers>=4.40.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/withyaac/yaac"
+Repository = "https://github.com/withyaac/yaac"
+Documentation = "https://github.com/withyaac/yaac#readme"
+"Bug Tracker" = "https://github.com/withyaac/yaac/issues"
+
 [project.optional-dependencies]
 dev = [
     "mypy>=1.8.0",
@@ -40,7 +48,7 @@ dev = [
 packages = {find = {}}
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -48,7 +56,7 @@ disallow_incomplete_defs = true
 
 [tool.ruff]
 line-length = 88
-target-version = "py312"
+target-version = "py310"
 select = ["E", "F", "I", "N", "W", "B", "C4", "UP"]
 ignore = []
 

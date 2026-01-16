@@ -133,120 +133,34 @@ def _build_backbone(backbone_type: str) -> torch.nn.Module:
 
 
 def _build_convnext_tiny_dinov3_backbone() -> torch.nn.Module:
-    """Build ConvNeXt-Tiny backbone matching DINOv3 architecture.
+    """Build ConvNeXt-Tiny backbone from DINOv3.
     
-    This constructs the same architecture as DINOv3 ConvNeXt-Tiny from HuggingFace,
-    but reinitializes weights randomly so customers can load their own weights.
-    This ensures parameter names match exactly with exported models.
+    Loads the DINOv3 ConvNeXt-Tiny architecture from HuggingFace.
+    Weights are loaded separately via load_model_from_checkpoint().
     
     Returns:
         Backbone module that takes (batch, 3, H, W) and returns (batch, 768, H', W')
     """
-    # Load DINOv3 ConvNeXt-Tiny architecture from HuggingFace
-    # Try without token first (public models don't require it)
-    # If it fails, we'll handle the error
-    try:
-        dinov3_model = AutoModel.from_pretrained(
-            "facebook/dinov3-convnext-tiny-pretrain-lvd1689m",
-            token=None,  # Try without token first
-            device_map="cpu",  # Load on CPU, customer will move to their device
-        )
-    except Exception as e:
-        # If authentication is required, provide helpful error
-        error_msg = str(e).lower()
-        if "token" in error_msg or "authentication" in error_msg:
-            raise ValueError(
-                "DINOv3 model requires HuggingFace authentication. "
-                "Set HUGGINGFACE_TOKEN environment variable, or use a different backbone. "
-                "Note: This is only needed to construct the architecture - no pretrained weights are used."
-            ) from e
-        raise
+    hf_model = AutoModel.from_pretrained("facebook/dinov3-convnext-tiny-pretrain-lvd1689m")
     
-    # Reinitialize all weights randomly (we don't want pretrained weights)
-    # This ensures the architecture matches but weights are random
-    for param in dinov3_model.parameters():
-        if param.requires_grad:
-            torch.nn.init.normal_(param, mean=0.0, std=0.02)
-    
-    # Extract the ConvNeXt stages from the DINOv3 model
-    # The DINOv3 model has a 'stages' attribute which is the actual ConvNeXt backbone
-    if not hasattr(dinov3_model, 'stages'):
-        raise ValueError(
-            f"DINOv3 model does not have 'stages' attribute. "
-            f"Available attributes: {list(dinov3_model.__dict__.keys())}"
-        )
-    
-    # Create a proper backbone module matching yaac_internal structure
-    # This module takes (batch, 3, H, W) and returns (batch, 768, H', W') features
-    class ConvNeXtStagesBackbone(torch.nn.Module):
-        """Extracts ConvNeXt stages from DINOv3 model.
+    class DINOv3Backbone(torch.nn.Module):
+        """Simple wrapper around DINOv3 ConvNeXt stages."""
         
-        This matches the structure used in yaac_internal to ensure
-        parameter names are identical.
-        """
-        def __init__(self, stages: torch.nn.Module, layer_norm: torch.nn.Module | None = None):
+        def __init__(self, stages: torch.nn.ModuleList, layer_norm: torch.nn.Module):
             super().__init__()
             self.stages = stages
             self.layer_norm = layer_norm
         
         def forward(self, x: torch.Tensor) -> torch.Tensor:
-            """Forward through ConvNeXt stages.
-            
-            Args:
-                x: Input tensor (batch, 3, H, W)
-                
-            Returns:
-                Feature tensor (batch, 768, H', W')
-            """
-            # Forward through stages
             for stage in self.stages:
                 x = stage(x)
-            
-            # Apply layer norm if present
-            if self.layer_norm is not None:
-                # Layer norm expects (batch, channels, H, W) -> (batch, H, W, channels) -> norm -> back
-                batch, channels, height, width = x.shape
-                x = x.permute(0, 2, 3, 1)  # (batch, H, W, channels)
-                x = self.layer_norm(x)
-                x = x.permute(0, 3, 1, 2)  # (batch, channels, H, W)
-            
+            # Layer norm: (B,C,H,W) -> (B,H,W,C) -> norm -> (B,C,H,W)
+            x = x.permute(0, 2, 3, 1)
+            x = self.layer_norm(x)
+            x = x.permute(0, 3, 1, 2)
             return x
     
-    # Extract stages and layer_norm from DINOv3 model
-    actual_backbone = ConvNeXtStagesBackbone(
-        stages=dinov3_model.stages,
-        layer_norm=getattr(dinov3_model, 'layer_norm', None),
-    )
-    
-    # Create wrapper that matches SIC interface (matching yaac_internal structure)
-    class DINOv3ConvNeXtBackbone(torch.nn.Module):
-        """Wrapper for DINOv3 ConvNeXt to match SIC backbone interface.
-        
-        This matches the structure in yaac_internal to ensure parameter names match.
-        """
-        
-        def __init__(self, dinov3_model: torch.nn.Module, actual_backbone: torch.nn.Module):
-            super().__init__()
-            self._dinov3_model = dinov3_model
-            self._actual_backbone = actual_backbone
-        
-        def forward(self, x: torch.Tensor) -> torch.Tensor:
-            """Forward pass through DINOv3 ConvNeXt.
-            
-            Args:
-                x: Input images (batch, 3, H, W)
-                
-            Returns:
-                Feature tensor (batch, 768, H', W')
-            """
-            # Forward through actual backbone (ConvNeXtStagesBackbone)
-            features = self._actual_backbone(x)
-            
-            # Return features with spatial dimensions (will be pooled by head if needed)
-            return features
-    
-    backbone_wrapper = DINOv3ConvNeXtBackbone(dinov3_model, actual_backbone)
-    return backbone_wrapper
+    return DINOv3Backbone(hf_model.stages, hf_model.layer_norm)
 
 
 def _build_head(head_type: str, num_classes: int) -> torch.nn.Module:

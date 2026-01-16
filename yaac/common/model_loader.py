@@ -71,8 +71,6 @@ def load_model_from_checkpoint(
     state_dict = load_file(str(safetensors_path))
     
     # Load weights with strict matching
-    # If this fails, it means the config doesn't match the actual model structure
-    # This is a creation-time issue, not a loading issue
     model.load_state_dict(state_dict, strict=True)
     
     model = model.to(device)

@@ -4,4 +4,4 @@ This package provides interfaces and utilities for working with trained image
 classification models exported from YAAC's training infrastructure.
 """
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"

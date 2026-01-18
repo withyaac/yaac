@@ -1,3 +1,4 @@
+import os
 import torchvision
 import torch
 from transformers import AutoModel
@@ -141,7 +142,17 @@ def _build_convnext_tiny_dinov3_backbone() -> torch.nn.Module:
     Returns:
         Backbone module that takes (batch, 3, H, W) and returns (batch, 768, H', W')
     """
-    hf_model = AutoModel.from_pretrained("facebook/dinov3-convnext-tiny-pretrain-lvd1689m")
+    hf_token = os.getenv("HUGGINGFACE_TOKEN")
+    if not hf_token:
+        raise ValueError(
+            "HUGGINGFACE_TOKEN environment variable not set. "
+            "Required for loading gated DINOv3 model from HuggingFace. "
+            "Get a token from: https://huggingface.co/settings/tokens"
+        )
+    hf_model = AutoModel.from_pretrained(
+        "facebook/dinov3-convnext-tiny-pretrain-lvd1689m",
+        token=hf_token,
+    )
     
     class DINOv3Backbone(torch.nn.Module):
         """Simple wrapper around DINOv3 ConvNeXt stages."""
@@ -169,7 +180,7 @@ def _build_head(head_type: str, num_classes: int) -> torch.nn.Module:
     Args:
         head_type: Type of head to build ("basic_001" or "basic_convnext_tiny")
         num_classes: Number of output classes
-        
+        n
     Returns:
         Predictions head module
     """

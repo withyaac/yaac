@@ -14,6 +14,21 @@ Install from PyPI:
 pip install yaac
 ```
 
+## Requirements
+
+### HuggingFace Token (for DINOv3 ConvNeXt-Tiny backbone)
+
+If you're loading models that use the DINOv3 ConvNeXt-Tiny backbone (`convnext_tiny_dinov3`), you'll need a HuggingFace token because the model repository is gated.
+
+1. **Request access**: Visit https://huggingface.co/facebook/dinov3-convnext-tiny-pretrain-lvd1689m and request access to the repository
+2. **Generate a token**: Create a token at https://huggingface.co/settings/tokens
+3. **Set environment variable**: Export the token as an environment variable:
+   ```bash
+   export HUGGINGFACE_TOKEN=your_token_here
+   ```
+
+The token is only required when loading models with the ConvNeXt-Tiny backbone. Models using ResNet18 or other backbones don't require a token.
+
 ## Quick Start
 
 Load a trained model and run inference:
